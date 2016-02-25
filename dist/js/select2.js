@@ -3613,9 +3613,13 @@ S2.define('select2/data/tokenizer',[
       });
     }
 
+    function callbackFunction(params) {
+      decorated.call(self, params, callback);
+    }
+
     params.term = params.term || '';
 
-    var tokenData = this.tokenizer(params, this.options, select);
+    var tokenData = this.tokenizer(params, this.options, select, callbackFunction);
 
     if (tokenData.term !== params.term) {
       // Replace the search term if we have the search box
@@ -3630,7 +3634,7 @@ S2.define('select2/data/tokenizer',[
     decorated.call(this, params, callback);
   };
 
-  Tokenizer.prototype.tokenizer = function (_, params, options, callback) {
+  Tokenizer.prototype.tokenizer = function (_, params, options, callback, tokenCallback) {
     var separators = options.get('tokenSeparators') || [];
     var term = params.term;
     var i = 0;
@@ -3641,6 +3645,7 @@ S2.define('select2/data/tokenizer',[
         text: params.term
       };
     };
+    var isTagFound = false;
 
     while (i < term.length) {
       var termChar = term[i];
@@ -3656,7 +3661,10 @@ S2.define('select2/data/tokenizer',[
         term: part
       });
 
+      isTagFound = true;
+
       var data = createTag(partParams);
+      tokenCallback({term: term});
 
       if (data == null) {
         i++;
@@ -3668,6 +3676,20 @@ S2.define('select2/data/tokenizer',[
       // Reset the term to not include the tokenized portion
       term = term.substr(i + 1) || '';
       i = 0;
+    }
+
+    if (isTagFound) {
+      var partParams = $.extend({}, params, {
+        term: term
+      });
+
+      var data = createTag(partParams);
+      tokenCallback({term: term});
+      callback(data);
+
+      return {
+        term: ''
+      };
     }
 
     return {
